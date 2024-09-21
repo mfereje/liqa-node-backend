@@ -1,0 +1,317 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// schema.prisma
+
+model User {
+  id          String   @id @default(uuid()) @unique
+  fullName    String   @map("full_name")
+  email       String   @unique
+  phoneNumber String   @map("phone_number")
+  password    String
+  username    String?  @unique
+  createdById   String @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedById  String @map("updated_by_id")
+ 
+  updatedAt   DateTime @updatedAt @map("updated_at")
+   createdBy  User?    @relation(name: "CreatedBy", fields: [createdById], references: [id])
+  updatedBy  User?    @relation(name: "UpdatedBy", fields: [updatedById], references: [id])
+ 
+
+  roles      UserRole[]
+  
+  messagesSent  Message[] @relation("senderRelation")
+  messagesReceived Message[] @relation("receiverRelation")
+ updatedUsers User[]   @relation("UpdatedBy")
+   createdUsers User[]   @relation("CreatedBy")
+  updatedRoles Role[]   @relation("UpdatedBy")
+   createdRoles Role[]   @relation("CreatedBy")
+  updatedPermissions Permission[]   @relation("UpdatedBy")
+   createdPermissions Permission[]   @relation("CreatedBy")
+     updatedShareholders Shareholder[]   @relation("UpdatedBy")
+   createdShareholders Shareholder[]   @relation("CreatedBy")
+   
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @unique
+  name        String
+  createdById   String @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedById  String @map("updated_by_id")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   User?      @relation(name: "CreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?      @relation(name: "UpdatedBy",fields: [updatedById], references: [id])
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String  @map("role_id")
+  user User @relation(fields: [userId], references: [id])
+  role Role  @relation(fields: [roleId], references: [id])
+
+  @@map("user_role")
+  @@id([userId, roleId])
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @unique
+  name        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById   String @map("created_by_id")
+
+  updatedById  String @map("updated_by_id")
+  createdBy   User?      @relation(name: "CreatedBy",fields: [createdById], references: [id])
+  updatedBy   User?    @relation(name: "UpdatedBy",fields: [updatedById], references: [id])
+
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+ 
+  permissionId String @map("permission_id")
+  role Role @relation(fields: [roleId], references: [id])
+   permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@map("role_permission")
+  @@id([roleId, permissionId])
+}
+model Address {
+  id                  BigInt   @id @default(autoincrement())
+  kebele              String
+  houseNumber         String   @map("house_number")
+  regionId            BigInt   @map("region_id")
+  cityOrZoneId        BigInt   @map("city_or_zone__id")
+  subCitiesOrTownId   BigInt   @map("sub_cities_or_town_id")
+  woreda              BigInt
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           Int      @map("created_by")
+  updatedBy           Int      @map("updated_by")
+// Relation to Shareholder
+  shareholders      Shareholder[]
+  @@map("address")
+}
+model Region {
+  id          String   @id @default(uuid()) @unique
+  name        String   @unique
+  cities      City[]   // Relation to City
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model City {
+  id          String   @id @default(uuid()) @unique
+  name        String   @unique
+  regionId    String   // Foreign key for the relation to Region
+  region      Region   @relation(fields: [regionId], references: [id])
+  subcities   Subcity[] // Relation to Subcity
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subcity {
+  id          String   @id @default(uuid()) @unique
+  name        String
+  cityId      String   // Foreign key for the relation to City
+  city        City     @relation(fields: [cityId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Message {
+  id          String   @id @default(uuid()) @unique
+  senderId    String
+  sender      User     @relation("senderRelation", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("receiverRelation", fields: [receiverId], references: [id])
+  netContent  String   @map("net_content")
+  content     String
+  messageType String
+  createdBy   Int?     @map("created_by")
+  checkedBy   Int?     @map("checked_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  status      Boolean
+
+  @@map("message")
+}
+model ShareFile {
+  id        BigInt   @id @default(autoincrement())
+  url       String
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+// Relation to Shareholder
+  shareholders      Shareholder[]
+  @@map("share_file")
+}
+
+model Shareholder {
+  id                        String        @id @default(uuid()) @unique
+  ShareholderID             String    @map("ShareholderID")
+  engName                   String    @map("eng_name")
+  amhName                   String    @map("amh_name")
+  Sex                       String
+  ForeignID                 String    @map("Foreign_ID")
+  PassportNumber            String    @map("Passport_number")
+  dateOfNationalityChange   String    @map("date_of_nationality_change")
+  NationalID                String?   @map("National_ID")
+  email                     String
+  Nationality               String?
+  addressId                  BigInt     @map("address_id")
+  address                   Address?  @relation(fields: [addressId], references: [id])
+  AccountNumber             String    @map("Account_Number")
+  TinNumber                 String    @map("Tin_Number")
+  MinorShareholders         DateTime? @map("Minorshareholders")
+  MothersName               String    @map("Mothers_Name")
+  Organisation              String
+  NameOfLegalRepresentative String    @map("Name_of_Legal_representative")
+  LegalRepresentativePhone  String    @map("Legal_representative_telephone")
+  fileId                   BigInt?   @map("file_id")
+  shareFile                ShareFile? @relation(fields: [fileId], references: [id])
+  shareId                   String?   @map("share_id")
+  share                     Share?    @relation(fields: [shareId], references: [id])
+  TelephoneNumber           String    @map("Telephone_Number")
+  status                    String
+  shareholderTypeId         String    @map("shareholders_type_id")
+  registredAt               DateTime? @map("registred_at")
+  mode                      Int?
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  createdById                 String?      @map("created_by_id")
+  updatedById                 String?      @map("updated_by_id")
+createdBy   User?      @relation(name: "CreatedBy",fields: [createdById], references: [id])
+  updatedBy   User?    @relation(name: "UpdatedBy",fields: [updatedById], references: [id])
+
+  shareholderLogs ShareholderLog[]
+  shareTransactions ShareTransaction[]
+  //shareTransfers ShareTransfer[]
+ shareholding Shareholding[]
+ fromshareTransfer ShareTransfer[]   @relation("fromShareholder")
+   tohareTransfer ShareTransfer[]   @relation("toShareholder")
+  @@map("shareholders")
+}
+
+model ShareholderLog {
+  id          Int      @id @default(autoincrement())
+  shareholderId String
+  shareholder Shareholder @relation(fields: [shareholderId], references: [id])
+  mode        Int
+  columnName  String    @map("coulmn_name")
+  value       String
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   Int?      @map("created_by")
+  updatedBy   Int?      @map("updated_by")
+
+  @@map("shareholder_log")
+}
+
+model Share {
+  id                String   @id @default(uuid()) @unique   
+  noOfShare         String   @map("no_of_share")
+  totalSubscribedAmount String @map("total_subscribed_amount")
+  totalPaidAmount   String   @map("total_paid_amount")
+  premiumAmount     String   @map("premium_amount")
+  serviceChargeAmount String @map("service_charge_amount")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         Int?     @map("created_by")
+  updatedBy         Int?     @map("updated_by")
+
+  shareholders      Shareholder[]
+
+  @@map("share")
+}
+
+model ShareTransaction {
+  id             Int        @id @default(autoincrement())
+  shareholderId String
+  shareholder    Shareholder @relation(fields: [shareholderId], references: [id])
+  shareholdingId String
+  shareholding   Shareholding @relation(fields: [shareholdingId], references: [id])
+  paidAmount     String     @map("paid_amount")
+  fycType        Int        @map("fyc_type")
+  paymentReason  Int        @map("payment_reason")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  createdBy      Int?       @map("created_by")
+  updatedBy      Int?       @map("updated_by")
+
+  @@map("sharetransaction")
+}
+
+model Shareholding {
+  id          String         @id @default(uuid()) @unique
+  shareholderId String  @map("shareholder_id")
+  shareholder Shareholder @relation(fields: [shareholderId], references: [id])
+  serialNumber Int @map("serial_number")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  createdBy   Int?        @map("created_by")
+  updatedBy   Int?        @map("updated_by")
+shareTransaction ShareTransaction[]
+  @@map("shareholdings")
+}
+
+model ShareTransfer {
+  id             Int        @id @default(autoincrement())
+  fromShareholderId String @map("from_shareholder_id")
+  fromShareholder Shareholder @relation(name:"fromShareholder", fields: [fromShareholderId], references: [id])
+ toShareholderId  String @map("to_shareholder_id")
+  toShareholder   Shareholder @relation(name :"toShareholder", fields: [toShareholderId], references: [id])
+  placeOfTransferId Int @map("place_of_transfer_id")
+  transferType    Int  @map("transfer_type")
+  serialNumber    Int  @map("serial_number")
+  fycType         Int  @map("fyc_type")
+  paymentReason   Int  @map("payment_reason")
+  transferDate    DateTime @map("transfer_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       Int?     @map("created_by")
+  updatedBy       Int?     @map("updated_by")
+
+  @@map("sharetransfer")
+}
+
+model SystemLog {
+  id          Int      @id @default(autoincrement())
+  tableName   String   @map("table_name")
+  activity    String
+  userId      Int?     @map("user_id")
+  date        DateTime
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_log")
+}
